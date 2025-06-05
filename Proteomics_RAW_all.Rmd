@@ -1,0 +1,252 @@
+---
+title: "Proteomics_Raw_ALL"
+author: "Maria Emily"
+date: "2024-06-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(dbplyr)
+library(readr)
+```
+
+Open file
+compilation
+```{r setup, include=FALSE}
+##no1
+df.prot = read.table("20240318_Old_vs_ Young_DRG.txt",stringsAsFactors = FALSE,
+                    header = TRUE, quote = "", comment.char = "",sep = "\t")
+TMT_columns = seq(473,569)
+dat = df.prot[TMT_columns]
+rownames(dat) = df.prot$Accession
+a_1 <- dat.old.axon.ani.BR1 <- dat[1:3]
+a_2 <- dat.old.axon.ani.BR2 <- dat[4:5]
+a_3 <- dat.old.axon.ani.BR3 <- dat[6:8]
+
+c_1 <- dat.old.axon.OPP.BR1 <- dat[18:20]
+c_2 <- dat.old.axon.OPP.BR2 <- dat[21:22]
+c_3 <- dat.old.axon.OPP.BR3 <- dat[23:25]
+
+
+d_1 <- dat.old.soma.ani.BR1 <- dat[26:28]
+d_2 <- dat.old.soma.ani.BR2 <- dat[29:30]
+d_3 <- dat.old.soma.ani.BR3 <- dat[31:33]
+
+f_1 <- dat.old.soma.OPP.BR1 <- dat[42:44]
+f_2 <- dat.old.soma.OPP.BR2 <- dat[45:46]
+f_3 <- dat.old.soma.OPP.BR3 <- dat[47:49]
+
+g_1 <- dat.yng.axon.ani.BR1 <- dat[50:52]
+g_2 <- dat.yng.axon.ani.BR2 <- dat[53:54]
+g_3 <- dat.yng.axon.ani.BR13 <- dat[55:57]
+
+i_1 <- dat.yng.axon.OPP.BR1 <- dat[66:68]
+i_2 <- dat.yng.axon.OPP.BR2 <- dat[69:70]
+i_3 <- dat.yng.axon.OPP.BR3 <- dat[71:73]
+
+j_1 <- dat.yng.soma.ani.BR1 <- dat[74:76]
+j_2 <- dat.yng.soma.ani.BR2 <- dat[77:78]
+j_3 <- dat.yng.soma.ani.BR3 <- dat[79:81]
+
+l_1 <- dat.yng.soma.OPP.BR1 <- dat[90:92]
+l_2 <- dat.yng.soma.OPP.BR2 <- dat[93:94]
+l_3 <- dat.yng.soma.OPP.BR3 <- dat[95:97]
+```
+
+##Filter data frame that contains at least 2 values 
+
+BR1
+```{r}
+##OLD_AXON 
+#Ani
+a_1 <- a_1[which(rowMeans(!is.na(a_1)) > 0.6), ]
+a_1 <- as.data.frame(rowMeans(a_1, na.rm=TRUE))
+colnames(a_1)<-"old_axon_ani_BR1"
+#OPP
+c_1 <- c_1[which(rowMeans(!is.na(c_1)) > 0.6), ]
+c_1 <- as.data.frame(rowMeans(c_1, na.rm=TRUE))
+colnames(c_1)<-"old_axon_OPP_BR1"
+##merge data set 
+BR1_old_axon <- merge(a_1, c_1, by=0, all=TRUE)
+
+##OLD_SOMA 
+#Ani
+d_1 <- d_1[which(rowMeans(!is.na(d_1)) > 0.6), ]
+d_1 <- as.data.frame(rowMeans(d_1, na.rm=TRUE))
+colnames(d_1)<-"old_soma_ani_BR1"
+
+#OPP
+f_1 <- f_1[which(rowMeans(!is.na(f_1)) > 0.6), ]
+f_1 <- as.data.frame(rowMeans(f_1, na.rm=TRUE))
+colnames(f_1)<-"old_soma_OPP_BR1"
+##merge data set 
+BR1_old_soma <- merge(d_1, f_1, by=0, all=TRUE)
+
+##YNG_AXON 
+#Ani
+g_1 <- g_1[which(rowMeans(!is.na(g_1)) > 0.6), ]
+g_1 <- as.data.frame(rowMeans(g_1, na.rm=TRUE))
+colnames(g_1)<-"yng_axon_ani_BR1"
+#OPP
+i_1 <- i_1[which(rowMeans(!is.na(i_1)) > 0.6), ]
+i_1 <- as.data.frame(rowMeans(i_1, na.rm=TRUE))
+colnames(i_1)<-"yng_axon_OPP_BR1"
+##merge data set 
+BR1_yng_axon <- merge(g_1, i_1, by=0, all=TRUE)
+
+##YNG_SOMA 
+#Ani
+j_1 <- j_1[which(rowMeans(!is.na(j_1)) > 0.6), ]
+j_1 <- as.data.frame(rowMeans(j_1, na.rm=TRUE))
+colnames(j_1)<-"yng_soma_ani_BR1"
+#OPP
+l_1 <- l_1[which(rowMeans(!is.na(l_1)) > 0.6), ]
+l_1 <- as.data.frame(rowMeans(l_1, na.rm=TRUE))
+colnames(l_1)<-"yng_soma_OPP_BR1"
+##merge data set 
+BR1_yng_soma <- merge(j_1, l_1, by=0, all=TRUE)
+
+
+BR1_normalized <- full_join(BR1_old_axon, BR1_old_soma, by="Row.names") %>%
+  full_join(., BR1_yng_axon, by="Row.names") %>%
+  full_join(., BR1_yng_soma, by="Row.names")%>% 
+  replace(is.na(.), 0)
+write.csv(BR1_normalized, "BR1_RAW.csv", row.names = TRUE)
+```
+
+
+###################################################################################
+For BR2 only 2 TR
+```{r setup, include=FALSE}
+
+##OLD_AXON 
+#Ani
+a_2 <- as.data.frame(rowMeans(a_2, na.rm=TRUE))
+colnames(a_2)<-"old_axon_ani_BR2"
+#OPP
+c_2 <- as.data.frame(rowMeans(c_2, na.rm=TRUE))
+colnames(c_2)<-"old_axon_OPP_BR2"
+##merge data set 
+BR2_old_axon <- merge(a_2, c_2, by=0, all=TRUE)
+
+##OLD_SOMA 
+#Ani
+d_2 <- as.data.frame(rowMeans(d_2, na.rm=TRUE))
+colnames(d_2)<-"old_soma_ani_BR2"
+
+#OPP
+f_2 <- as.data.frame(rowMeans(f_2, na.rm=TRUE))
+colnames(f_2)<-"old_soma_OPP_BR2"
+##merge data set 
+BR2_old_soma <- merge(d_2, f_2, by=0, all=TRUE)
+
+##YNG_AXON 
+#Ani
+g_2 <- as.data.frame(rowMeans(g_2, na.rm=TRUE))
+colnames(g_2)<-"yng_axon_ani_BR2"
+#OPP
+i_2 <- as.data.frame(rowMeans(i_2, na.rm=TRUE))
+colnames(i_2)<-"yng_axon_OPP_BR2"
+##merge data set 
+BR2_yng_axon <- merge(g_2, i_2, by=0, all=TRUE)
+
+##YNG_SOMA 
+#Ani
+j_2 <- as.data.frame(rowMeans(j_2, na.rm=TRUE))
+colnames(j_2)<-"yng_soma_ani_BR2"
+#OPP
+l_2 <- as.data.frame(rowMeans(l_2, na.rm=TRUE))
+colnames(l_2)<-"yng_soma_OPP_BR2"
+##merge data set 
+BR2_yng_soma <- merge(j_2, l_2, by=0, all=TRUE)
+
+
+BR2_normalized <- full_join(BR2_old_axon, BR2_old_soma, by="Row.names") %>%
+  full_join(., BR2_yng_axon, by="Row.names") %>%
+  full_join(., BR2_yng_soma, by="Row.names")%>% 
+  replace(is.na(.), 0)
+write.csv(BR2_normalized, "BR2_raw.csv", row.names = TRUE)
+```
+
+##############################################################################################
+
+BR3 
+```{r setup, include=FALSE}
+##OLD_AXON 
+#Ani
+a_3 <- a_3[which(rowMeans(!is.na(a_3)) > 0.6), ]
+a_3 <- as.data.frame(rowMeans(a_3, na.rm=TRUE))
+colnames(a_3)<-"old_axon_ani_BR3"
+#OPP
+c_3 <- c_3[which(rowMeans(!is.na(c_3)) > 0.6), ]
+c_3 <- as.data.frame(rowMeans(c_3, na.rm=TRUE))
+colnames(c_3)<-"old_axon_OPP_BR3"
+##merge data set 
+BR3_old_axon <- merge(a_3, c_3, by=0, all=TRUE)
+
+##OLD_SOMA 
+#Ani
+d_3 <- d_3[which(rowMeans(!is.na(d_3)) > 0.6), ]
+d_3 <- as.data.frame(rowMeans(d_3, na.rm=TRUE))
+colnames(d_3)<-"old_soma_ani_BR3"
+
+#OPP
+f_3 <- f_3[which(rowMeans(!is.na(f_3)) > 0.6), ]
+f_3 <- as.data.frame(rowMeans(f_3, na.rm=TRUE))
+colnames(f_3)<-"old_soma_OPP_BR3"
+##merge data set 
+BR3_old_soma <- merge(d_3, f_3, by=0, all=TRUE)
+
+##YNG_AXON 
+#Ani
+g_3 <- g_3[which(rowMeans(!is.na(g_3)) > 0.6), ]
+g_3 <- as.data.frame(rowMeans(g_3, na.rm=TRUE))
+colnames(g_3)<-"yng_axon_ani_BR3"
+#OPP
+i_3 <- i_3[which(rowMeans(!is.na(i_3)) > 0.6), ]
+i_3 <- as.data.frame(rowMeans(i_3, na.rm=TRUE))
+colnames(i_3)<-"yng_axon_OPP_BR3"
+##merge data set 
+BR3_yng_axon <- merge(g_3, i_3, by=0, all=TRUE)
+
+##YNG_SOMA 
+#Ani
+j_3 <- j_3[which(rowMeans(!is.na(j_3)) > 0.6), ]
+j_3 <- as.data.frame(rowMeans(j_3, na.rm=TRUE))
+colnames(j_3)<-"yng_soma_ani_BR3"
+#OPP
+l_3 <- l_3[which(rowMeans(!is.na(l_3)) > 0.6), ]
+l_3 <- as.data.frame(rowMeans(l_3, na.rm=TRUE))
+colnames(l_3)<-"yng_soma_OPP_BR3"
+##merge data set 
+BR3_yng_soma <- merge(j_3, l_3, by=0, all=TRUE)
+
+BR3_normalized <- full_join(BR3_old_axon, BR3_old_soma, by="Row.names") %>%
+  full_join(., BR3_yng_axon, by="Row.names") %>%
+  full_join(., BR3_yng_soma, by="Row.names")%>% 
+  replace(is.na(.), 0)
+write.csv(BR3_normalized, "BR3_raw.csv", row.names = TRUE)
+
+```
+
+
+Merge CSV 
+```{r setup, include=FALSE}
+BR1 <- read.csv(file = "BR1_RAW.csv", header = TRUE)
+BR2 <- read.csv(file = "BR2_raw.csv", header = TRUE)
+BR3 <- read.csv(file="BR3_raw.csv", header = TRUE)
+
+FinalData_Normalized2 <- full_join(BR1, BR2, by="Row.names") %>%
+  full_join(., BR3, by="Row.names") %>%
+  replace(is.na(.), 0)
+
+dim(FinalData_Normalized2) # Number of columns looks good
+View(FinalData_Normalized2) # Seems to look good
+write.csv(FinalData_Normalized2, "FinalData_raw.csv", row.names = TRUE)
+```

@@ -1,0 +1,330 @@
+---
+title: "DeqMS pipeline"
+author: "Sandra Ruiz, Maria Emily"
+date: "2024-06-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(DEqMS)
+
+```
+
+
+```{r}
+all_proteins <- read_excel("/Users/mariaemily/Documents/Thesis/proteomics/all proteins/FinalData_raw.xlsx")
+
+#Some row has a 0 value which should be considered as null for statistical analysis.
+#so, instead of transforming to NA as:
+all_proteins[all_proteins==0] <- NA
+```
+
+################################################################################################################
+
+#Read protein table as input and filter it
+# No need to select the columns of the intensity because I already have the excell with just the abundance (scaled)
+``` {r}
+library(tidyverse)
+
+rownames(all_proteins) <- all_proteins$Accession
+
+```
+OLD, AXON 
+``` {r}
+###Clean up data for each condition
+# Filter protein table. DEqMS require minimum two values for each group.
+
+#Old_axon_ani
+old_axon_ani <- c("old_axon_ani_BR1", "old_axon_ani_BR2","old_axon_ani_BR3")
+all_proteins$na_count_old_axon_ani = apply(all_proteins,1,function(x) sum(is.na(x[old_axon_ani]))) 
+
+ScaledData_old_axon_ani <- all_proteins %>% 
+  select(Accession, contains("old_axon_ani"))
+
+old_axon_ani_filt = ScaledData_old_axon_ani[all_proteins$na_count_old_axon_ani<2, 
+                                1:4]
+
+#Old_axon_OPP
+old_axon_OPP <- c("old_axon_OPP_BR1", "old_axon_OPP_BR2","old_axon_OPP_BR3")
+
+all_proteins$na_count_old_axon_OPP = apply(all_proteins,1,function(x) sum(is.na(x[old_axon_OPP]))) 
+
+ScaledData_old_axon_OPP <- all_proteins %>% 
+  select(Accession, contains("old_axon_OPP"))
+
+old_axon_OPP_filt = ScaledData_old_axon_OPP[all_proteins$na_count_old_axon_OPP<2, 
+                                1:4]
+```
+
+
+OLD, SOMA
+``` {r}
+
+#Old_soma_ani
+old_soma_ani <- c("old_soma_ani_BR1", "old_soma_ani_BR2","old_soma_ani_BR3")
+all_proteins$na_count_old_soma_ani = apply(all_proteins,1,function(x) sum(is.na(x[old_soma_ani]))) 
+
+ScaledData_old_soma_ani <- all_proteins %>% 
+  select(Accession, contains("old_soma_ani"))
+
+old_soma_ani_filt = ScaledData_old_soma_ani[all_proteins$na_count_old_soma_ani<2, 
+                                1:4]
+
+#Old_soma_OPP
+old_soma_OPP <- c("old_soma_OPP_BR1", "old_soma_OPP_BR2","old_soma_OPP_BR3")
+all_proteins$na_count_old_soma_OPP = apply(all_proteins,1,function(x) sum(is.na(x[old_soma_OPP]))) 
+
+ScaledData_old_soma_OPP <- all_proteins %>% 
+  select(Accession, contains("old_soma_OPP"))
+
+old_soma_OPP_filt = ScaledData_old_soma_OPP[all_proteins$na_count_old_soma_OPP<2, 
+                                1:4]
+
+```
+YNG, Axon
+```{r}
+#Yng_axon_ani
+yng_axon_ani <- c("yng_axon_ani_BR1", "yng_axon_ani_BR2","yng_axon_ani_BR3")
+all_proteins$na_count_yng_axon_ani = apply(all_proteins,1,function(x) sum(is.na(x[yng_axon_ani]))) 
+
+ScaledData_yng_axon_ani <- all_proteins %>% 
+  select(Accession, contains("yng_axon_ani"))
+
+yng_axon_ani_filt = ScaledData_yng_axon_ani[all_proteins$na_count_yng_axon_ani<2, 
+                                1:4]
+
+#Yng_axon_OPP
+yng_axon_OPP <- c("yng_axon_OPP_BR1", "yng_axon_OPP_BR2","yng_axon_OPP_BR3")
+all_proteins$na_count_yng_axon_OPP = apply(all_proteins,1,function(x) sum(is.na(x[yng_axon_OPP]))) 
+
+ScaledData_yng_axon_OPP <- all_proteins %>% 
+  select(Accession, contains("yng_axon_OPP"))
+
+yng_axon_OPP_filt = ScaledData_yng_axon_OPP[all_proteins$na_count_yng_axon_OPP<2, 
+                                1:4]
+```
+
+YNG SOMA
+```{r}
+#Yng_soma_ani
+yng_soma_ani <- c("yng_soma_ani_BR1", "yng_soma_ani_BR2","yng_soma_ani_BR3")
+all_proteins$na_count_yng_soma_ani = apply(all_proteins,1,function(x) sum(is.na(x[yng_soma_ani]))) 
+
+ScaledData_yng_soma_ani <- all_proteins %>% 
+  select(Accession, contains("yng_soma_ani"))
+
+yng_soma_ani_filt = ScaledData_yng_soma_ani[all_proteins$na_count_yng_soma_ani<2, 
+                                1:4]
+
+#Yng_soma_OPP
+yng_soma_OPP <- c("yng_soma_OPP_BR1", "yng_soma_OPP_BR2","yng_soma_OPP_BR3")
+all_proteins$na_count_yng_soma_OPP = apply(all_proteins,1,function(x) sum(is.na(x[yng_soma_OPP]))) 
+
+ScaledData_yng_soma_OPP <- all_proteins %>% 
+  select(Accession, contains("yng_soma_OPP"))
+
+yng_soma_OPP_filt = ScaledData_yng_soma_OPP[all_proteins$na_count_yng_soma_OPP<2, 
+                                1:4]
+```
+
+
+Merge all!!!!!!
+```{r}
+# Merge tables by Accession 
+all_proteins_filter <- full_join(old_axon_ani_filt, old_axon_OPP_filt, by="Accession") %>%
+  
+  full_join(., old_soma_ani_filt, by="Accession")%>%
+  full_join(., old_soma_OPP_filt, by="Accession")%>%
+  full_join(., yng_axon_ani_filt, by="Accession")%>%
+  full_join(., yng_axon_OPP_filt, by="Accession")%>%
+  full_join(., yng_soma_ani_filt, by="Accession")%>%
+  full_join(., yng_soma_OPP_filt, by="Accession")
+
+all_proteins_filter = data.frame(all_proteins_filter[2:25],
+                             row.names = all_proteins_filter$Accession)
+```
+
+##################################################
+There must be easier ways but I guess this is what I can do for now 
+```{r}
+a <- dat.old.axon.ani <-all_proteins_filter[, c( "old_axon_ani_BR1", "old_axon_ani_BR2", "old_axon_ani_BR3")]
+c <- dat.old.axon.OPP <-all_proteins_filter[, c( "old_axon_OPP_BR1", "old_axon_OPP_BR2", "old_axon_OPP_BR3")]
+
+d <- dat.old.soma.ani <-all_proteins_filter[, c( "old_soma_ani_BR1", "old_soma_ani_BR2", "old_soma_ani_BR3")]
+f <- dat.old.soma.OPP<-all_proteins_filter[, c("old_soma_OPP_BR1","old_soma_OPP_BR2", "old_soma_OPP_BR3")]
+
+g <- dat.yng.axon.ani <-all_proteins_filter[,c("yng_axon_ani_BR1", "yng_axon_ani_BR2", "yng_axon_ani_BR3")]
+i <- dat.yng.axon.OPP <-all_proteins_filter[,c( "yng_axon_OPP_BR1","yng_axon_OPP_BR2", "yng_axon_OPP_BR3")]
+
+j <- dat.yng.soma.ani <-all_proteins_filter[,c("yng_soma_ani_BR1", "yng_soma_ani_BR2", "yng_soma_ani_BR3")]
+l <- dat.yng.soma.OPP <-all_proteins_filter[,c("yng_soma_OPP_BR1","yng_soma_OPP_BR2", "yng_soma_OPP_BR3")]
+ 
+
+```
+
+Separate Data for protein matrix 
+```{r}
+c_vs_a<- merge(c, a, by=0, all=T)
+
+c_vs_a<- as.data.frame(c_vs_a[which(rowMeans(is.na(c_vs_a)) < 0.85), ])
+
+##change all values to 0
+c_vs_a<- c_vs_a%>% 
+  replace(is.na(.), 0)
+##make into data frame with rownames
+c_vs_a= data.frame(c_vs_a[2:7],
+                             row.names =c_vs_a$Row.names)
+# add pseudocount 1 to all proteins
+c_vs_a<- c_vs_a+1
+
+```
+
+
+####################################################################
+
+###Make a data frame of unique peptide count per protein_PSMs
+```{r}
+BioRep1_PSM <- read.csv(file = "/Users/mariaemily/Documents/Thesis/proteomics/BR1-1_Proteins.csv", header = TRUE)
+
+FinalBioRep1_PSM <- BioRep1_PSM %>% select(Accession, X..PSMs)
+
+
+BioRep2_PSM <- read.csv(file = "/Users/mariaemily/Documents/Thesis/proteomics/BR2-1_Proteins.csv", header = TRUE)
+
+FinalBioRep2_PSM <- BioRep2_PSM %>% select(Accession, X..PSMs)
+
+
+BioRep3_PSM <- read.csv(file = "/Users/mariaemily/Documents/Thesis/proteomics/BR3-1_Proteins.csv", header = TRUE)
+
+FinalBioRep3_PSM <- BioRep3_PSM %>% select(Accession, X..PSMs)
+
+
+# Merge tables by Accession 
+FinalDataPSMs <- full_join(FinalBioRep1_PSM, FinalBioRep2_PSM, by="Accession") %>%
+  full_join(., FinalBioRep3_PSM, by="Accession")
+FinalDataPSMs<- FinalDataPSMs[order(FinalDataPSMs$Accession),]
+rownames(FinalDataPSMs)<-FinalDataPSMs$Accession
+
+
+##Filter data before making matrix
+
+names <-rownames(as.data.frame(c_vs_a))
+names_PSMs <-rownames(as.data.frame(FinalDataPSMs))
+name_filt <- which(names_PSMs %in% names)
+FinalDataPSMs<-FinalDataPSMs[name_filt,]
+
+library(matrixStats)
+# we use minimum PSMs count among the 3 Biological Replicates. 
+#It seems to be the standard way to analogize it
+
+
+PSMs_table = data.frame(count = rowMins(as.matrix(FinalDataPSMs[,2:4])),
+                             row.names = FinalDataPSMs$Accession)
+
+##This keeps the minimum value for all the identified proteins through the the 3 BR.If a protein is not being identified in any of the 3 BR it keeps the min as NA.
+
+# Minimum peptide count of some proteins can be 0
+# Change NA to 0
+PSMs_table <- PSMs_table%>% 
+  replace(is.na(.), 0)
+
+# add pseudocount 1 to all proteins
+PSMs_table$count = PSMs_table$count+1
+
+```
+
+
+###DEqMS analysis on LFQ data
+```{r}
+protein.matrix= log2(as.matrix(c_vs_a))
+rownames(protein.matrix)<-rownames(c_vs_a)
+##median normalization
+#protein.matrix = na.omit(protein.matrix)
+#boxplot(protein.matrix,las=2,main="TMT10plex data PXD004163")
+protein.matrix= equalMedianNormalization(protein.matrix)
+
+## choose only the 2  class you want
+
+class = as.factor(c(
+  "old_axon_OPP","old_axon_OPP","old_axon_OPP","old_axon_ani","old_axon_ani","old_axon_ani",
+                    
+  "old_soma_OPP","old_soma_OPP","old_soma_OPP","old_soma_ani","old_soma_ani","old_soma_ani",
+  
+    "yng_axon_OPP","yng_axon_OPP","yng_axon_OPP","yng_axon_ani","yng_axon_ani","yng_axon_ani",
+  
+     "yng_soma_OPP","yng_soma_OPP","yng_soma_OPP" ,"yng_soma_ani","yng_soma_ani","yng_soma_ani"
+                    ))
+                  
+```  
+
+
+```{r}
+
+design = model.matrix(~0+class) # fitting without intercept
+fit1 = lmFit(protein.matrix,design = design)
+
+#Define the 2 conditions to compare 
+##contrast is a-b equal to logFCa/b
+cont <- makeContrasts(classold_axon_OPP-classold_axon_ani, levels = design)
+fit2 = contrasts.fit(fit1,contrasts = cont)
+fit3 <- eBayes(fit2)
+
+fit3$count = PSMs_table[rownames(fit3$coefficients),"count"]
+
+#check the values in the vector fit3$count
+#if min(fit3$count) return NA or 0, you should troubleshoot the error first
+min(fit3$count)
+
+fit4 = spectraCounteBayes(fit3)
+
+
+##VarianceBoxplot(fit4, n=4000, main = "Label-free dataset PXD000279",
+##                xlab="peptide count + 1")
+
+DEqMS.results = outputResult(fit4,coef_col = 1)
+# Add Gene names to the data frame
+rownames(all_proteins_filter) = all_proteins_filter$Accession
+#DEqMS.results$Gene.name = all_proteins_filter[DEqMS.results$gene,]$Gene.names
+view(DEqMS.results)
+DeqMs.results <- DEqMS.results %>% drop_na(logFC)
+##filter for pvalue under 0.1 and is upregulated
+filt <- DeqMs.results[which(DeqMs.results$sca.P.Value < 0.1 & (DeqMs.results$logFC) > 0), ]
+```
+
+```{r}
+filt_genes <-rownames(as.data.frame(old_soma))
+all_genes <-rownames(as.data.frame(all_proteins_filter))
+gene_filt <- which(all_genes %in% filt_genes)
+Genes<-all_proteins_filter[gene_filt,colnames(f_vs_d)]
+
+
+```
+
+```{r}
+axon_merge <- merge(old_axon, yng_axon, by=0, all=T)
+soma_merge <- merge(old_soma, yng_soma, by=0, all=T)
+all_merge <- full_join(axon_merge, soma_merge, by="Row.names")
+write.csv(all_merge, "all_upregulated_from_ani_p.val0.1.csv", row.names = T)
+
+
+```
+
+
+
+```{r}
+sub_proteins <- read_excel("/Users/mariaemily/Documents/Thesis/proteomics/all proteins/all upreg from ani substratcted by ani.xlsx")
+sub_proteins[sub_proteins<0] <- 0
+
+
+
+write.csv(sub_proteins, "all_upregulated_from_ani_p.val0.1_subs.csv", row.names = T)
+```
+
