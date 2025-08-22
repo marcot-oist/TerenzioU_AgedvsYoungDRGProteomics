@@ -10,6 +10,8 @@ After filtering steps, proteins that were up-regulated or down-regulated in the 
 
 Both "DEqMS_normalize_all.Rmd" and "DEqMS_yng_vs_old_all.Rmd" were written according to DEqMS script instructions and package (https://www.bioconductor.org/packages/release/bioc/html/DEqMS.html) 
 
+A cleaned-up version of "DEqMS_yng_vs_old_all.Rmd" has been uploaded as "DEqMS_yng_vs_old_all_cleanedup.Rmd"
+
 
 
 
