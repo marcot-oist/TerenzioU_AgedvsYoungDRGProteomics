@@ -1,0 +1,351 @@
+---
+title: "DeqMS pipeline"
+author: "Sandra Ruiz, Maria Emily"
+date: "2024-06-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(DEqMS)
+
+```
+
+
+```{r}
+all_proteins <- read_excel("candidates_normalized0.1.xlsx")
+
+```
+
+################################################################################################################
+
+#Read protein table as input and filter it
+# No need to select the columns of the intensity because I already have the excell with just the abundance (scaled)
+``` {r}
+library(tidyverse)
+
+
+
+```
+
+
+
+``` {r}
+###Clean up data for each condition
+# Filter protein table. DEqMS require minimum two values for each group.
+
+
+a<- yng_soma_OPP <- data.frame(all_proteins[11:13],
+                             row.names = all_proteins$Row.names)
+
+
+b <- old_axon_OPP <-data.frame(all_proteins[2:4],
+                             row.names = all_proteins$Row.names)
+
+
+c <- old_soma_OPP<-data.frame(all_proteins[8:10],
+                             row.names = all_proteins$Row.names)
+
+
+d<- yng_axon_OPP <-data.frame(all_proteins[5:7],
+                             row.names = all_proteins$Row.names)
+```
+
+##################################################
+Axon
+``` {r}
+d_vs_b <- merge(d, b, by=0, all=T)
+
+d_vs_b[d_vs_b== 0] <- NA
+##remove all na
+d_vs_b <- as.data.frame(d_vs_b[which(rowMeans(is.na(d_vs_b)) < 0.85), ])
+
+
+d_vs_b <-data.frame(d_vs_b[2:7], 
+                    row.names = d_vs_b$Row.names )
+d_vs_b[is.na(d_vs_b)] <- 0
+# add pseudocount 0.001(min value is 0.002, but not so much difference) to all proteins
+d_vs_b<-d_vs_cb +0.001
+
+
+```
+
+Soma
+``` {r}
+a_vs_c <- merge(a, c, by=0, all=T)
+
+a_vs_c[a_vs_c== 0] <- NA
+##remove all na
+a_vs_c <- as.data.frame(a_vs_c[which(rowMeans(is.na(a_vs_c)) < 0.85), ])
+
+
+a_vs_c <-data.frame(a_vs_c[2:7], 
+                    row.names = a_vs_c$Row.names )
+a_vs_c[is.na(a_vs_c)] <- 0
+# add pseudocount 0.001(min value is 0.002, but not so much difference) to all proteins
+a_vs_c<-a_vs_c +0.001
+
+
+```
+####################################################################
+
+###Make a data frame of unique peptide count per protein_PSMs
+```{r}
+BioRep1_PSM <- read.csv(file = "/Users/mariaemily/Documents/Thesis/proteomics/BR1-1_Proteins.csv", header = TRUE)
+
+FinalBioRep1_PSM <- BioRep1_PSM %>% select(Accession, X..PSMs)
+
+
+BioRep2_PSM <- read.csv(file = "/Users/mariaemily/Documents/Thesis/proteomics/BR2-1_Proteins.csv", header = TRUE)
+
+FinalBioRep2_PSM <- BioRep2_PSM %>% select(Accession, X..PSMs)
+
+
+BioRep3_PSM <- read.csv(file = "/Users/mariaemily/Documents/Thesis/proteomics/BR3-1_Proteins.csv", header = TRUE)
+
+FinalBioRep3_PSM <- BioRep3_PSM %>% select(Accession, X..PSMs)
+
+
+# Merge tables by Accession 
+FinalDataPSMs <- full_join(FinalBioRep1_PSM, FinalBioRep2_PSM, by="Accession") %>%
+  full_join(., FinalBioRep3_PSM, by="Accession")
+FinalDataPSMs<- FinalDataPSMs[order(FinalDataPSMs$Accession),]
+rownames(FinalDataPSMs)<-FinalDataPSMs$Accession
+
+##Filter data before making matrix for axon
+
+names <-rownames(as.data.frame(d_vs_b))
+names_PSMs <-rownames(as.data.frame(FinalDataPSMs))
+name_filt <- which(names_PSMs %in% names)
+FinalDataPSMs<-FinalDataPSMs[name_filt,]
+
+##Filter data before making matrix for soma
+
+names <-rownames(as.data.frame(a_vs_c))
+names_PSMs <-rownames(as.data.frame(FinalDataPSMs))
+name_filt <- which(names_PSMs %in% names)
+FinalDataPSMs<-FinalDataPSMs[name_filt,]
+
+
+
+
+library(matrixStats)
+# we use minimum PSMs count among the 3 Biological Replicates. 
+#It seems to be the standard way to analogize it
+
+
+PSMs_table = data.frame(count = rowMins(as.matrix(FinalDataPSMs[,2:4])),
+                             row.names = FinalDataPSMs$Accession)
+
+##This keeps the minimum value for all the identified proteins through the the 3 BR.If a protein is not being identified in any of the 3 BR it keeps the min as NA.
+
+# Minimum peptide count of some proteins can be 0
+# Change NA to 0
+PSMs_table <- PSMs_table%>% 
+  replace(is.na(.), 0)
+
+# add pseudocount 1 to all proteins
+PSMs_table$count = PSMs_table$count+1
+
+```
+
+
+###DEqMS analysis on LFQ data for axon
+```{r}
+protein.matrix= log2(as.matrix(d_vs_b))  
+rownames(protein.matrix)<-rownames(d_vs_b)
+
+class = as.factor(c("yng_axon_OPP","yng_axon_OPP","yng_axon_OPP","old_axon_OPP","old_axon_OPP","old_axon_OPP"))
+                  
+```  
+###DEqMS analysis on LFQ data for soma
+```{r}
+protein.matrix= log2(as.matrix(a_vs_c))  
+rownames(protein.matrix)<-rownames(a_vs_c)
+
+class = as.factor(c("yng_soma_OPP","yng_soma_OPP","yng_soma_OPP","old_soma_OPP","old_soma_OPP","old_soma_OPP"))
+                  
+```  
+
+
+Run DeqMS for axon
+```{r}
+
+design = model.matrix(~0+class) # fitting without intercept
+fit1 = lmFit(protein.matrix,design = design)
+
+#Define the 2 conditions to compare 
+##contrast is a-b equal to logFCa/b
+cont <- makeContrasts(classyng_axon_OPP-classold_axon_OPP, levels = design)
+fit2 = contrasts.fit(fit1,contrasts = cont)
+fit3 <- eBayes(fit2)
+
+fit3$count = PSMs_table[rownames(fit3$coefficients),"count"]
+
+#check the values in the vector fit3$count
+#if min(fit3$count) return NA or 0, you should troubleshoot the error first
+min(fit3$count)
+
+fit4 = spectraCounteBayes(fit3)
+
+
+##VarianceBoxplot(fit4, n=4000, main = "Label-free dataset PXD000279",
+##                xlab="peptide count + 1")
+
+DEqMS.results = outputResult(fit4,coef_col = 1)
+# Add Gene names to the data frame
+rownames(all_proteins) = all_proteins$Row.names
+#DEqMS.results$Gene.name = all_proteins_filter[DEqMS.results$gene,]$Gene.names
+view(DEqMS.results)
+DeqMs.results <- DEqMS.results %>% drop_na(logFC)
+##filter for pvalue under 0.05 and is upregulated
+filt_axon <- DeqMs.results[which(DeqMs.results$sca.P.Value < 0.05 & (DeqMs.results$logFC) < 0), ]
+
+axon_res<-DeqMs.results
+
+```
+Run DeqMS for soma
+```{r}
+
+design = model.matrix(~0+class) # fitting without intercept
+fit1 = lmFit(protein.matrix,design = design)
+
+#Define the 2 conditions to compare 
+##contrast is a-b equal to logFCa/b
+cont <- makeContrasts(classyng_soma_OPP-classold_soma_OPP, levels = design)
+fit2 = contrasts.fit(fit1,contrasts = cont)
+fit3 <- eBayes(fit2)
+
+fit3$count = PSMs_table[rownames(fit3$coefficients),"count"]
+
+#check the values in the vector fit3$count
+#if min(fit3$count) return NA or 0, you should troubleshoot the error first
+min(fit3$count)
+
+fit4 = spectraCounteBayes(fit3)
+
+
+##VarianceBoxplot(fit4, n=4000, main = "Label-free dataset PXD000279",
+##                xlab="peptide count + 1")
+
+DEqMS.results = outputResult(fit4,coef_col = 1)
+# Add Gene names to the data frame
+rownames(all_proteins) = all_proteins$Row.names
+#DEqMS.results$Gene.name = all_proteins_filter[DEqMS.results$gene,]$Gene.names
+view(DEqMS.results)
+DeqMs.results <- DEqMS.results %>% drop_na(logFC)
+##filter for pvalue under 0.05 and is upregulated
+filt_soma <- DeqMs.results[which(DeqMs.results$sca.P.Value < 0.05 & (DeqMs.results$logFC) < 0), ]
+
+soma_res<-DeqMs.results
+
+
+```
+
+
+change to gene names 
+```{r}
+df.prot = read.table("20240318_Old_Aniso_Axon_BR1-1-(1)_Proteins.txt",stringsAsFactors = FALSE,header = TRUE, quote = "", comment.char = "",sep = "\t")
+TMT_columns = seq(7,39)
+protein_info = df.prot[TMT_columns]
+filter_proteins <- read_excel("/Users/mariaemily/Documents/Thesis/proteomics/all proteins/soma_res.xlsx")
+#for axon
+#filter_proteins <- read_excel("/Users/mariaemily/Documents/Thesis/proteomics/all proteins/just_axon2.xlsx")
+
+rownames(filter_proteins) <- filter_proteins$...1
+
+filt_prot <-rownames(filter_proteins)
+all_prot <-protein_info$Accession
+prot_filt <- which(all_prot %in% filt_prot)
+Prots<-protein_info[prot_filt, ]
+rownames(Prots) <- Prots$Accession
+
+
+all_soma<- merge(Prots, filter_proteins , by=0)
+
+write.csv(Prots, "soma_all_data_sheet.csv", row.names = T)
+#write.csv(Prots, "axon_all_data_sheets.csv", row.names=T)
+```
+
+
+
+
+
+```{r}
+ library(EnhancedVolcano)
+#options(ggrepel.max.overlaps = Inf)
+  EnhancedVolcano(res_soma,
+                  #or res_axon
+    lab = rownames(res_soma),
+    #or res_axon
+    x ='logFC',
+    y = 'sca.P.Value',
+    title = 'Young Soma vs. Old Soma', #or Young Axon vs. Young Soma
+     selectLab = c(''),
+     xlab = bquote(~Log[2]~ 'fold change'),
+    pCutoff = 50e-3,
+    FCcutoff = 2.0,
+    pointSize = 1,
+    labSize = 5.0,
+    colAlpha = 0.5,
+    legendPosition = 'right',
+    legendLabSize = 10,
+    legendIconSize = 2,
+    drawConnectors = TRUE,
+    widthConnectors = 0.5, 
+    gridlines.minor = FALSE, 
+    gridlines.major = FALSE, 
+     ylim = c(0, 10), boxedLabels = TRUE,
+    xlim=c(-20,20))
+  
+
+```
+
+heatmap
+```{r} 
+library("pheatmap")
+all_protein <- read_excel("average_candidates_normalized0.1.xlsx")
+all_protein<- data.frame(all_protein[4:5], row.names = all_proteins$Row.names)
+all_protein<- all_protein[rowSums(all_protein != 0, na.rm=TRUE) > 0,] 
+all_protein = all_protein*1000
+mat<-as.matrix(log10(all_protein))
+mat[mat == -Inf] <- 0
+
+pheatmap(
+    mat               = mat,
+     color             = colorRampPalette(c("darkblue","royalblue","white","darkred"))(120),
+     breaks            = mat_breaks,
+     border_color      = NA,
+     show_colnames     = TRUE,
+     show_rownames     = TRUE(fontsize = 8),
+     annotation_colors = mat_colors,
+     drop_levels       = TRUE,
+    legend_labels = c("0","0.5", "1", "2", "3"), 
+
+     fontsize          = 14,
+     main              = "Quantile Color Scale"
+)
+##rm 0
+mat<- mat[rowSums(mat != 0, na.rm=TRUE) > 0,]
+##quantile break
+quantile_breaks <- function(xs, n = 10) {
+  breaks <- quantile(xs, probs = seq(0, 1, length.out = n))
+  breaks[!duplicated(breaks)]
+}
+
+mat_breaks <- quantile_breaks(mat, n = 200)
+##check distribution
+dat <- data.frame(values = as.numeric(mat))
+ggplot(dat, aes(values)) + geom_density(bw = "nrd0")
+
+```
+
+
+
